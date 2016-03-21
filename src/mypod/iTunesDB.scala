@@ -12,7 +12,10 @@ package mypod {
       }
 
       def writeUTF16(out: ByteBuffer, s: String) = {
-        out.put(s.getBytes("UTF-16"), 0, s.length * 2)
+        val bytes = s.getBytes("UTF-16")
+        println(bytes.length + " - " + s.length)
+        out.put(bytes, 3, s.length * 2 - 1)
+        writeByte(out, 0)
       }
 
       def writeHexString(out: ByteBuffer, string: String) = {
@@ -29,8 +32,9 @@ package mypod {
 
       def writeInt(out: ByteBuffer, n: Int) = out.putInt(n)
 
-      def newByteBuffer = {
-        val b: ByteBuffer = ByteBuffer.allocate(99999)
+      def newByteBuffer: ByteBuffer = newByteBuffer(9999)
+      def newByteBuffer(size: Int) = {
+        val b: ByteBuffer = ByteBuffer.allocate(size)
         b.order(ByteOrder.LITTLE_ENDIAN)
         b
       }
@@ -70,6 +74,13 @@ package mypod {
       }
     }
 
+    def mkMhlp(out: ByteBuffer, numPlaylists: Int) = {
+      Util.writeAscii(out, "mhlp")
+      Util.writeInt(out, 92)
+      Util.writeInt(out, numPlaylists)
+      for(_ <- 1 to 20) Util.writeInt(out, 0)
+    }
+
     def mkMhlt(out: ByteBuffer, songNum: Int) = {
       Util.writeAscii(out, "mhlt")
       Util.writeInt(out, 92)
@@ -81,6 +92,8 @@ package mypod {
 
     def mkMhod(out: ByteBuffer, key: String, value: String): Boolean =
       mkMhod(out, key, value, 1, false)
+    def mkMhod(out: ByteBuffer, playlistId: Int): Boolean =
+      mkMhod(out, null, null, playlistId, true)
     def mkMhod(out: ByteBuffer, typeString: String, string: String,
                playlistId: Int, isPlaylist: Boolean) = {
       val objType: Int = if(isPlaylist){
@@ -128,6 +141,51 @@ package mypod {
 
     }
 
+    def mkMhip(out: ByteBuffer, childs: Int, playlistId: Int, trackId: Int, size: Int) = {
+      Util.writeAscii(out, "mhip")
+      Util.writeInt(out, 76)
+      Util.writeInt(out, 76 + size)
+      Util.writeInt(out, childs)
+      Util.writeInt(out, 0)
+      Util.writeInt(out, playlistId)
+      Util.writeInt(out, trackId)
+      Util.writeInt(out, 0)
+      Util.writeInt(out, 0)
+      for(_ <- 1 to 40) Util.writeByte(out, 0)
+    }
+
+    def mkMhyp(out: ByteBuffer, size: Int, name: String, playlistType: Int, fileNum: Int,
+               playlistId: Int, mhodCount: Int): Unit  =
+      mkMhyp(out, size, name, playlistType, fileNum, playlistId, mhodCount, false)
+
+    def mkMhyp(out: ByteBuffer): Unit = mkMhyp(out, 0, "Podcasts", 0, 0, 0, 0, true)
+
+    def mkMhyp(out: ByteBuffer, size: Int, name: String, playlistType: Int, fileNum: Int,
+               playlistId: Int, mhodCount: Int, isPodcast: Boolean) = {
+      val append: ByteBuffer = Util.newByteBuffer
+      mkMhod(append, "title", name)
+
+      writeDummyListView(append)
+
+      Util.writeAscii(out, "mhyp")
+      Util.writeInt(out, 108)
+      Util.writeInt(out, size + 108 + append.position)
+      Util.writeInt(out, 2 + mhodCount)
+      Util.writeInt(out, fileNum)
+      Util.writeInt(out, playlistType)
+      Util.writeInt(out, 0)
+      Util.writeInt(out, if(isPodcast) 0 else playlistId)
+      Util.writeInt(out, 0)
+      Util.writeInt(out, 0)
+      Util.writeShort(out, 0) // spl
+      val podcast = if(isPodcast) 1 else 0
+      Util.writeByte(out, podcast)
+      Util.writeByte(out, podcast)
+      Util.writeInt(out, 0)
+      for(_ <- 1 to 60) Util.writeByte(out, 0)
+      append.flip
+      out.put(append)
+    }
 
     def mkMhit(out: ByteBuffer, size: Int, count: Int, track: LibTrack) = {
       println("SKIPPING VOLUME")
@@ -218,7 +276,36 @@ package mypod {
       for(_ <- 1 to 8) Util.writeInt(out, 0)
     }
 
-
+    def writeDummyListView(out: ByteBuffer){
+      Util.writeHexString(out, "6d686f6418000000")
+      Util.writeHexString(out, "8802000064000000")
+      Util.writeHexString(out, "0000000000000000")
+      Util.writeHexString(out, "0000000000000000")
+      Util.writeHexString(out, "0000000000000000")
+      Util.writeHexString(out, "8400010001000000")
+      Util.writeHexString(out, "0900000000000000")
+      Util.writeHexString(out, "0100250000000000")
+      Util.writeHexString(out, "0000000000000000")
+      Util.writeHexString(out, "0200c80001000000")
+      Util.writeHexString(out, "0000000000000000")
+      Util.writeHexString(out, "0d003c0000000000")
+      Util.writeHexString(out, "0000000000000000")
+      Util.writeHexString(out, "04007d0000000000")
+      Util.writeHexString(out, "0000000000000000")
+      Util.writeHexString(out, "03007d0000000000")
+      Util.writeHexString(out, "0000000000000000")
+      Util.writeHexString(out, "0800640000000000")
+      Util.writeHexString(out, "0000000000000000")
+      Util.writeHexString(out, "1700640001000000")
+      Util.writeHexString(out, "0000000000000000")
+      Util.writeHexString(out, "1400500001000000")
+      Util.writeHexString(out, "0000000000000000")
+      Util.writeHexString(out, "15007d0001000000")
+      for(_ <- 1 to 376) Util.writeByte(out, 0)
+      Util.writeHexString(out, "6500000000000000")
+      for(_ <- 1 to (76 - 4)) Util.writeByte(out, 0)
+      println("DODGY BB")
+    }
 
     val mhodIdMap: Map[String, Int] = Map("title" -> 1,
                                           "path" -> 2,
