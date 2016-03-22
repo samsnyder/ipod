@@ -1,12 +1,89 @@
 import java.nio._;
 import java.security._;
+import javax.crypto._;
+import javax.crypto.spec._;
 
 package mypod {
   object Hash58 {
+    val OFFSET_UNK30 = 0x30
+    val OFFSET_DBID = 0x18
+    val OFFSET_UNK32 = 0x32
+    val OFFSET_SHA58 = 0x58
+
     def hashBuffer(buffer: ByteBuffer, guid: String) = {
-      println("KEY: " + guid)
+      println("Hashing with " + guid)
       val key = createKey(guid)
-      println(key)
+      val hash = createHash(key, buffer)
+    }
+
+    def createHash(key: Array[Int], buffer: ByteBuffer) = {
+      var brain = prepareBuffer(buffer)
+      val hmacKeyPart = hmac(key, 64, 0x36)
+
+      val cript: MessageDigest = MessageDigest.getInstance("SHA-1")
+      hmacKeyPart.foreach(b => cript.update(b.asInstanceOf[Byte]))
+      buffer.position(0)
+      cript.update(buffer)
+      val digestPart = cript.digest
+
+      val hmacKey = hmac(hmacKeyPart, 64, 0x36^0x5c)
+      cript.reset
+      hmacKey.foreach(b => cript.update(b.asInstanceOf[Byte]))
+      cript.update(digestPart)
+      val digest = cript.digest.map(b => (b & 0xFF).toChar)
+
+      brain += OFFSET_SHA58 -> new String(digest)
+
+      buffer.position(0)
+      pretender(buffer, brain)
+
+      digest
+    }
+
+    def hmac(key: Array[Int], length: Int, what: Int) = {
+      val result = Array.fill(length){0}
+      for(i <- 0 until key.length){
+        if(i < length){
+          result(i) = key(i) ^ what
+        }
+      }
+      if(key.length < length){
+        for(i <- key.length until length){
+          result(i) = 54
+        }
+      }
+      result
+    }
+
+    def prepareBuffer(buffer: ByteBuffer) = {
+      def getWriteValue(size: Int, fill: Int) =
+        fill.asInstanceOf[Char].toString * size
+      val preserve = Map(
+        OFFSET_DBID -> getWriteValue(8, 0),
+        OFFSET_UNK32 -> getWriteValue(20, 0),
+        OFFSET_UNK30 -> getWriteValue(1, 1),
+        OFFSET_SHA58 -> getWriteValue(20, 0)
+      )
+      pretender(buffer, preserve) - OFFSET_UNK30
+    }
+
+    def pretender(buffer: ByteBuffer, workload: Map[Int, String]) = {
+      var newWorkload: Map[Int, String] = Map()
+      workload.foreach{
+        case (k, v) => {
+          buffer.position(k)
+          var oldValue = ""
+          for(_ <- 0 until v.length){
+            val b = buffer.get()
+            oldValue += b.toChar.toString
+          }
+          newWorkload += (k -> oldValue)
+          buffer.position(k)
+          iTunesDB.Util.writeAscii(buffer, v)
+        }
+      }
+      buffer.position(0)
+      newWorkload
     }
 
     def createKey(guid: String) = {
@@ -24,44 +101,23 @@ package mypod {
         val hi = (lcm & 0xFF00) >> 8
         val lo = (lcm & 0xFF)
 
-
-        println(table1(hi) + " - " + lo)
-
         y(i*2+0) = usc((table1(hi) * 0xB5) - 3)
         y(i*2+1) = usc((table2(hi) * 0xB7) + 0x49)
         y(i*2+2) = usc((table1(lo) * 0xB5) - 3)
         y(i*2+3) = usc((table2(lo) * 0xB7) + 0x49)
       }
 
-
       for(i <- 0 until y.length){
         y(i) = invTable(y(i))
-        println(y(i))
       }
 
-      val digest = getSHA1Digest(y)
-      println(digest)
-
-      y
+      val cript: MessageDigest = MessageDigest.getInstance("SHA-1")
+      fixed.foreach(b => cript.update(b.asInstanceOf[Byte]))
+      y.foreach(b => cript.update(b.asInstanceOf[Byte]))
+      cript.digest().map(b => (b & 0xFF).asInstanceOf[Int])
     }
 
     def getSHA1Digest(y: Array[Int]) = {
-      val cript: MessageDigest = MessageDigest.getInstance("SHA-1")
-      for(i <- fixed){
-        cript.update(i.asInstanceOf[Byte])
-      }
-      for(i <- y){
-        cript.update(i.asInstanceOf[Byte])
-      }
-      val digest = cript.digest()
-      println("TEST")
-      for(b <- digest){
-        println((b & 0xFF).asInstanceOf[Int])
-      }
-
-      println(digest.length)
-
-      "hello"
     }
 
     def usc(n: Int) = {

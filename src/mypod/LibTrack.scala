@@ -4,7 +4,7 @@ package mypod {
     var map: Map[String, String] = Map("playcount" -> "0",
                                        "filesize" -> "4408873",
                                        "bitrate" -> "160",
-                                       "title" -> "Till I\"m Gone - feat. Wiz Khalifa",
+                                       "title" -> "Till I\'m Gone - feat. Wiz Khalifa",
                                        "artist" -> "Tinie Tempah",
                                        "fdesc" -> "MP3 (MPEG audio layer 3)",
                                        "cdnum" -> "1",

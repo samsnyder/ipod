@@ -9,40 +9,34 @@ package mypod {
     var sequence = 0
 
     def writeDB() = {
-      println("FSDf")
-
       val out: ByteBuffer = ByteBuffer.allocateDirect(99999);
       out.order(ByteOrder.LITTLE_ENDIAN)
 
       iTunesDB.mkMhbd(out)
-      val mhbdSize = out.position()
-      val mhbdPos = out.position()
-
-      println(mhbdSize)
+      var mhbdSize = out.position()
+      val mhsdPos = out.position()
 
       iTunesDB.mkMhsd(out)
       var mhsdSize = out.position()
 
       iTunesDB.mkMhlt(out, 1)
-
       assembleMhit(out, new LibTrack())
       mhsdSize = out.position() - mhsdSize
 
-      println("Playlists")
-
       writeAllPlaylists(out)
+      mhbdSize = out.position - mhbdSize
 
       out.flip
       iTunesDB.mkMhbd(out, mhbdSize, 3)
-      out.position(0)
+      out.position(mhsdPos)
       iTunesDB.mkMhsd(out, mhsdSize, 1)
 
 
       Hash58.hashBuffer(out, "000a27002135e037")
 
-      val outFilePath: File = new File("/Users/sam/Downloads/tunesdb.txt")
+      val outFilePath: File = new File("/Users/sam/Downloads/iTunesDB")
       val channel: FileChannel = new FileOutputStream(outFilePath, false).getChannel();
-      out.flip();
+      out.position(0)
       channel.write(out);
       channel.close();
 
@@ -93,7 +87,7 @@ package mypod {
         val currentId = getNextId;
         val mhodBuffer = iTunesDB.Util.newByteBuffer
         iTunesDB.mkMhod(mhodBuffer, id)
-        iTunesDB.mkMhip(buffer, 1, playlistId, id, mhodBuffer.position)
+        iTunesDB.mkMhip(buffer, 1, currentId, id, mhodBuffer.position)
         childCount += 1
         songsCount += 1
         mhodBuffer.flip
@@ -119,15 +113,24 @@ package mypod {
       mhodChunks.order(ByteOrder.LITTLE_ENDIAN)
       var mhodCount = 0
 
-      for((key, value) <- track.map) {
-        if(value.length > 0){
-          if(iTunesDB.mkMhod(mhodChunks, key, value)){
-            mhodCount += 1
-          }
-        }
-      }
+      // for((key, value) <- track.map) {
+      //   if(value.length > 0){
+      //     if(iTunesDB.mkMhod(mhodChunks, key, value)){
+      //       mhodCount += 1
+      //     }
+      //   }
+      // }
 
-      iTunesDB.mkMhit(out, mhodChunks.position, mhodCount, track)
+      mhodCount = 6
+      iTunesDB.mkMhod(mhodChunks, "album", track.get("album"))
+      iTunesDB.mkMhod(mhodChunks, "artist", track.get("artist"))
+      iTunesDB.mkMhod(mhodChunks, "composer", track.get("composer"))
+      iTunesDB.mkMhod(mhodChunks, "fdesc", track.get("fdesc"))
+      iTunesDB.mkMhod(mhodChunks, "path", track.get("path"))
+      iTunesDB.mkMhod(mhodChunks, "title", track.get("title"))
+
+      val currentId = getNextId
+      iTunesDB.mkMhit(out, currentId, mhodChunks.position, mhodCount, track, null)
       mhodChunks.flip
       out.put(mhodChunks)
 

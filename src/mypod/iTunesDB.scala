@@ -13,7 +13,6 @@ package mypod {
 
       def writeUTF16(out: ByteBuffer, s: String) = {
         val bytes = s.getBytes("UTF-16")
-        println(bytes.length + " - " + s.length)
         out.put(bytes, 3, s.length * 2 - 1)
         writeByte(out, 0)
       }
@@ -40,6 +39,29 @@ package mypod {
       }
     }
 
+
+    def mkMhxx(out: ByteBuffer, childs: Int, name: String) = {
+      Util.writeAscii(out, name)
+      Util.writeInt(out, 0x5c)
+      Util.writeInt(out, childs)
+      for(_ <- 1 to 20) Util.writeInt(out, 0x00)
+    }
+
+    def mkMhfd(out: ByteBuffer): Unit = mkMhfd(out, 0, 0, 0)
+    def mkMhfd(out: ByteBuffer, size: Int, childs: Int, nextId: Int) = {
+      Util.writeAscii(out, "mhfd")
+      Util.writeInt(out, 0x84)
+      Util.writeInt(out, 0x84 + size)
+      Util.writeInt(out, 0x00)
+      Util.writeInt(out, 0x02)
+      Util.writeInt(out, childs)
+      Util.writeInt(out, 0x00)
+      Util.writeInt(out, nextId)
+      for(_ <- 1 to 4) Util.writeInt(out, 0)
+      Util.writeInt(out, 0x02)
+      for(_ <- 1 to 20) Util.writeInt(out, 0)
+    }
+
     def mkMhbd(out: ByteBuffer): Unit = mkMhbd(out, 0, 0)
     def mkMhbd(out: ByteBuffer, size: Int, childs: Int): Unit = {
       Util.writeAscii(out, "mhbd")
@@ -61,6 +83,49 @@ package mypod {
       for(i <- 1 to 67){
         Util.writeInt(out, 0)
       }
+    }
+
+    def mkAwdbMhod(out: ByteBuffer, objType: Int, payload: String) {
+      val append: ByteBuffer = Util.newByteBuffer(1000)
+      if(objType == 0x03){
+        Util.writeInt(append, payload.length * 2)
+        Util.writeInt(append, 0x02)
+        Util.writeInt(append, 0x00)
+        Util.writeUTF16(append, payload)
+      }else{
+        Util.writeUTF16(append, payload)
+      }
+
+      val sizeHeader = 0x18
+      val sizeMhod = sizeHeader + append.position
+
+      Util.writeAscii(out, "mhod")
+      Util.writeInt(out, sizeHeader)
+      Util.writeInt(out, sizeMhod)
+      Util.writeInt(out, objType)
+      Util.writeInt(out, 0)
+      Util.writeInt(out, 0)
+      out.put(append)
+    }
+
+    def mkMhni(out: ByteBuffer, image: SubImage, childs: Int, payload: ByteBuffer) = {
+      val sizeHeader = 0x4C
+      val sizeMhni = sizeHeader + payload.limit
+
+      Util.writeAscii(out, "mhni")
+      Util.writeInt(out, sizeHeader)
+      Util.writeInt(out, sizeMhni)
+      Util.writeInt(out, childs)
+      Util.writeInt(out, image.storageId)
+      Util.writeInt(out, image.offset)
+      Util.writeInt(out, image.imageSize)
+      Util.writeInt(out, image.vPadding)
+      Util.writeInt(out, image.hPadding)
+      Util.writeInt(out, image.height)
+      Util.writeInt(out, image.width)
+      Util.writeInt(out, 0)
+      Util.writeInt(out, image.imageSize)
+      for(_ <- 1 to 8) Util.writeInt(out, 0)
     }
 
     def mkMhsd(out: ByteBuffer): Unit = mkMhsd(out, 0, 0)
@@ -180,22 +245,21 @@ package mypod {
       Util.writeShort(out, 0) // spl
       val podcast = if(isPodcast) 1 else 0
       Util.writeByte(out, podcast)
-      Util.writeByte(out, podcast)
+      Util.writeByte(out, 0)
       Util.writeInt(out, 0)
       for(_ <- 1 to 60) Util.writeByte(out, 0)
       append.flip
       out.put(append)
     }
 
-    def mkMhit(out: ByteBuffer, size: Int, count: Int, track: LibTrack) = {
+    def mkMhit(out: ByteBuffer, cId: Int, size: Int, count: Int,
+               track: LibTrack, artworkDb: ArtworkDB) = {
       println("SKIPPING VOLUME")
       println("SKIPPING RATING")
 
-      val cId: Int = track.get("id").toInt
-      val dbid: String = "ff60000000000000"
+      // val cId: Int = track.get("id").toInt
+      val dbid: String = "0100000000000000"
       val randCoverId: Int = 0
-
-      println(size + " - " + count)
 
       Util.writeAscii(out, "mhit")
       Util.writeInt(out, 0x184)
@@ -248,14 +312,14 @@ package mypod {
       Util.writeInt(out, 0)
       Util.writeInt(out, track.get("skipcount").toInt)
       Util.writeInt(out, track.get("lastskip").toInt)
-      Util.writeByte(out, track.get("has_artwork").toInt)
+      Util.writeByte(out, if(track.get("has_artwork").toInt == 0) 2 else 1)
       Util.writeByte(out, track.get("shuffleskip").toInt)
       Util.writeByte(out, track.get("bookmarkable").toInt)
       Util.writeByte(out, track.get("podcast").toInt)
       Util.writeHexString(out, track.get("dbid_2"))
       Util.writeByte(out, track.get("lyrics_flag").toInt)
       Util.writeByte(out, track.get("movie_flag").toInt)
-      Util.writeByte(out, track.get("played_flag").toInt)
+      Util.writeByte(out, if(track.get("played_flag").toInt == 0) 2 else 1)
       Util.writeByte(out, 0)
       Util.writeInt(out, 0)
       Util.writeInt(out, track.get("pregap").toInt)
