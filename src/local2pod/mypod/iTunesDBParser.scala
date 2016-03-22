@@ -1,6 +1,6 @@
 import java.nio._
 
-package mypod {
+package local2pod.mypod {
 
   case class ParserObj(mapIm: Map[Any, Any]) {
     var map = mapIm
@@ -62,7 +62,6 @@ package mypod {
 
         for(thisChild <- 1 to thisChilds){
           val t = Util.getAscii(in, obj.getInt("offset"), 4)
-          // println("TYPE: " + t + " offset: " + obj.getInt("offset") + " depth: " + deep)
 
           val r = t match {
             case "mhfd" => getMhfd(in, obj.getInt("offset"))
@@ -224,7 +223,6 @@ package mypod {
         val stringLength = Util.getInt(in, o + 24)
         obj.set("string",
                 Util.getUTF16(in, o + obj.getInt("total_size") - stringLength, stringLength))
-        println("HTRG " + obj.getString("string"))
         obj.set("header_size", obj.get("total_size"))
       }
 

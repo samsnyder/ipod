@@ -1,5 +1,5 @@
 
-package mypod {
+package local2pod.mypod {
   object DBID{
     def increment(str: String) = {
       toString(fromString(str) + 1)

@@ -1,6 +1,6 @@
 import java.nio._
 
-package mypod {
+package local2pod.mypod {
 
   object iTunesDB {
 
@@ -94,7 +94,6 @@ package mypod {
         Util.writeInt(append, 0x02)
         Util.writeInt(append, 0x00)
         Util.writeUTF16(append, payload)
-        println(payload.length + " - " + payload)
       }else{
         val payload = payloadAny.asInstanceOf[ByteBuffer]
         append.put(payload)
@@ -297,10 +296,9 @@ package mypod {
 
     def mkMhit(out: ByteBuffer, cId: Int, dbid: String, size: Int, count: Int,
                track: LibTrack, artworkDb: ArtworkDB) = {
-      println("SKIPPING VOLUME")
-      println("SKIPPING RATING")
+      val volume = 50
 
-      val randCoverId: Int = track.coverId
+      val randCoverId: Int = artworkDb.getiTunesArtId(track.coverId)
 
       Util.writeAscii(out, "mhit")
       Util.writeInt(out, 0x184)
@@ -312,22 +310,16 @@ package mypod {
       Util.writeShort(out, 0x100)
       Util.writeByte(out, track.get("compilation").toByte)
       Util.writeByte(out, track.get("rating").toByte)
-
-
       Util.writeInt(out, track.get("changetime").toInt)
       Util.writeInt(out, track.get("filesize").toInt)
       Util.writeInt(out, track.get("time").toInt)
-
-
-
       Util.writeInt(out, track.get("songnum").toInt)
       Util.writeInt(out, track.get("songs").toInt)
       Util.writeInt(out, track.get("year").toInt)
       Util.writeInt(out, track.get("bitrate").toInt)
       Util.writeShort(out, 0)
       Util.writeShort(out, track.get("srate").toInt)
-      println("WEARID SRATE")
-      Util.writeInt(out, 0)
+      Util.writeInt(out, volume)
       Util.writeInt(out, track.get("starttime").toInt)
       Util.writeInt(out, track.get("stoptime").toInt)
       Util.writeInt(out, track.get("soundcheck").toInt)
@@ -409,7 +401,6 @@ package mypod {
       for(_ <- 1 to 376) Util.writeByte(out, 0)
       Util.writeHexString(out, "6500000000000000")
       for(_ <- 1 to (76 - 4)) Util.writeByte(out, 0)
-      println("DODGY BB")
     }
 
     val mhodIdMap: Map[String, Int] = Map("title" -> 1,

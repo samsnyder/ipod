@@ -2,7 +2,7 @@ import java.io._
 import java.nio._;
 import java.nio.channels._;
 
-package mypod {
+package local2pod.mypod {
   class MKTunes(artworkDb: ArtworkDB) {
     val MPL_UID = 1234567890
 
@@ -25,7 +25,7 @@ package mypod {
       }
       mhsdSize = out.position() - mhsdSize
 
-      writeAllPlaylists(out, playlists)
+      writeAllPlaylists(out, tracks, playlists)
       mhbdSize = out.position - mhbdSize
 
       out.flip
@@ -44,9 +44,11 @@ package mypod {
 
     }
 
-    def writeAllPlaylists(out: ByteBuffer, playlists: Array[LibPlaylist]) = {
+    def writeAllPlaylists(out: ByteBuffer, tracks: Array[LibTrack],
+                          playlists: Array[LibPlaylist]) = {
       val masterBuffer: ByteBuffer = iTunesDB.Util.newByteBuffer
-      val masterPlaylist = new LibPlaylist("Test iPod", Array("cool", "hi", "nice"))
+      val allTrackIds = tracks.map(track => track.get("id"))
+      val masterPlaylist = new LibPlaylist("Test iPod", allTrackIds)
       createPlaylist(masterBuffer, masterPlaylist, true, MPL_UID)
       masterBuffer.flip
 
@@ -143,7 +145,7 @@ package mypod {
 
 
       iTunesDB.mkMhit(out, currentiTunesId, currentDbid, mhodChunks.position,
-                      mhodCount, track, null)
+                      mhodCount, track, artworkDb)
       mhodChunks.flip
       out.put(mhodChunks)
 

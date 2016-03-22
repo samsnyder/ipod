@@ -3,7 +3,7 @@ import java.security._;
 import javax.crypto._;
 import javax.crypto.spec._;
 
-package mypod {
+package local2pod.mypod {
   object Hash58 {
     val OFFSET_UNK30 = 0x30
     val OFFSET_DBID = 0x18
@@ -11,7 +11,6 @@ package mypod {
     val OFFSET_SHA58 = 0x58
 
     def hashBuffer(buffer: ByteBuffer, guid: String) = {
-      println("Hashing with " + guid)
       val key = createKey(guid)
       val hash = createHash(key, buffer)
     }
