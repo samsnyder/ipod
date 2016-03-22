@@ -1,25 +1,26 @@
 
 package mypod {
-  class LibTrack() {
-    val coverId = 1
+  class LibTrack(val coverId: Int, a: String) {
     var map: Map[String, String] = Map("playcount" -> "0",
                                        "filesize" -> "4408873",
                                        "bitrate" -> "160",
                                        "title" -> "Till I\'m Gone - feat. Wiz Khalifa",
-                                       "artist" -> "Tidffnie Tempah",
+                                       "artist" -> a,
                                        "fdesc" -> "MP3 (MPEG audio layer 3)",
                                        "cdnum" -> "1",
                                        "mediatype" -> "1",
                                        "addtime" -> "3541171245",
                                        "year" -> "2011",
-                                       "id" -> "testid",
+                                       "id" -> a,
                                        "soundcheck" -> "",
                                        "composer" -> "Parlophone UK",
                                        "srate" -> "44100",
                                        "volume" -> "0",
-                                       "album" -> "Disc-Overy",
+                                       "album" -> a,
                                        "songnum" -> "16",
                                        "test" -> "",
+                                       "has_artwork" -> "1",
+                                       "artworkcnt" -> "1",
                                        "path" -> ":iPod_Control:Music:F5:00gm39uHwBnhjIvCkOU2SC.mp3",
                                        "time" -> "213812")
     def get(key: String) = {

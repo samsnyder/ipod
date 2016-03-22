@@ -19,49 +19,60 @@ package mypod {
                       val width: Int, val path: String){
   }
 
-
-
   class ArtworkDB(artworkDir: String) {
+    val MAX_ITHMB_SIZE = 268435456
+
+
     val artworkDbFile = new File(artworkDir, "ArtworkDB")
 
     val imageProfiles = Array(
       ImageProfile(320, 320, 1060, 0),
       ImageProfile(128, 128, 1055, 0),
-      ImageProfile(56, 56, 1061, 122)
+      ImageProfile(56, 56, 1061, 112)
     )
 
     def load = {
-      object artworkObj {
-        val offset = 0
-        val childs = 1
+      try{
+        val file: RandomAccessFile = new RandomAccessFile(artworkDbFile,"rw");
+        val channel: FileChannel = file.getChannel();
+        val fileSize = channel.size();
+        val buffer: ByteBuffer = iTunesDB.Util.newByteBuffer(fileSize.asInstanceOf[Int]);
+        channel.read(buffer);
+        buffer.flip();
+
+
+        val obj = ParserObj(Map(
+                              "offset" -> 0,
+                              "childs" -> 1,
+                              "awdb" -> 1,
+                              "callback" -> ParserObj(Map(
+                                                        "PACKAGE" -> 5,
+                                                        "mhod" -> ParserObj(Map("item" -> (mhodItem _))),
+                                                        "mhii" -> ParserObj(Map("start" -> (mhiiStart _))),
+                                                        "mhni" -> ParserObj(Map("start" -> (mhniStart _)))
+                                                      ))
+                            ))
+
+        iTunesDBParse.parseiTunesDB(buffer, obj)
+      }catch {
+        case _ => {
+          println("ArtorkDB not loaded")
+        }
       }
-      val file: RandomAccessFile = new RandomAccessFile(artworkDbFile,"rw");
-      val channel: FileChannel = file.getChannel();
-      val fileSize = channel.size();
-      val buffer: ByteBuffer = iTunesDB.Util.newByteBuffer(fileSize.asInstanceOf[Int]);
-      channel.read(buffer);
-      buffer.flip();
-
-
-      val obj = ParserObj(Map(
-        "offset" -> 0,
-        "childs" -> 1,
-        "awdb" -> 1,
-        "callback" -> ParserObj(Map(
-          "PACKAGE" -> 5,
-          "mhod" -> ParserObj(Map("item" -> (mhodItem _))),
-          "mhii" -> ParserObj(Map("start" -> (mhiiStart _))),
-          "mhni" -> ParserObj(Map("start" -> (mhniStart _)))
-        ))
-      ))
-
-      iTunesDBParse.parseiTunesDB(buffer, obj)
     }
 
     // Callbacks
     var mhniBuff: ParserObj = null
     def mhiiStart(args: ParserObj): Unit = {
-      registerNewImage(args)
+      val ref = args.getObj("ref")
+      if(!ref.has("id")){
+        ref.set("id", lastIdSeen + 1)
+      }
+      val image = new LoadedImage(ref.getString("dbid"), ref.getInt("source_size"),
+                                  ref.getInt("id"), 0)
+
+
+      registerNewImage(image)
     }
     def mhniStart(args: ParserObj): Unit = {
       mhniBuff = args.getObj("ref")
@@ -69,7 +80,12 @@ package mypod {
     def mhodItem(args: ParserObj): Unit = {
       if(args.getObj("ref").getInt("type") == 0x03){
         mhniBuff.set("path", args.getObj("ref").get("string"))
-        registerSubImage(mhniBuff)
+        val subImage = SubImage(mhniBuff.getInt("storage_id"), mhniBuff.getInt("offset"),
+                                mhniBuff.getInt("imgsize"), mhniBuff.getInt("vpadding"),
+                                mhniBuff.getInt("hpadding"), mhniBuff.getInt("height"),
+                                mhniBuff.getInt("width"), mhniBuff.getString("path"))
+
+        registerSubImage(subImage)
       }
     }
 
@@ -144,8 +160,7 @@ package mypod {
       out.position(0)
       iTunesDB.mkMhfd(out, mhfdSize, 0x03, lastIdSeen + 1)
 
-      val outFilePath: File = new File("/Users/sam/Downloads/ArtworkDB")
-      val channel: FileChannel = new FileOutputStream(outFilePath, false).getChannel();
+      val channel: FileChannel = new FileOutputStream(artworkDbFile, false).getChannel();
       out.position(0)
       channel.write(out);
       channel.close();
@@ -166,31 +181,21 @@ package mypod {
 
     // var context: String = ""
     // var imageMap: Map[String, ImageInDB] = Map()
-    var lastIdSeen: Int = 0
+    var lastIdSeen: Int = 100
     var lastDbidSeen: String = "0000000000000000"
     var currentDbid: String = ""
 
-    def registerNewImage(args: ParserObj) = {
-      val ref = args.getObj("ref")
-
-      if(loadedImages contains ref.getString("dbid")){
+    def registerNewImage(image: LoadedImage) = {
+      if(loadedImages contains image.dbid){
         println("Image repeated")
       }else{
-        if(!ref.has("id")){
-          ref.set("id", lastIdSeen + 1)
+        loadedImages += (image.dbid -> image)
+        currentDbid = image.dbid
+        if(image.id > lastIdSeen){
+          lastIdSeen = image.id
         }
-        val image = new LoadedImage(ref.getString("dbid"), ref.getInt("source_size"),
-                                    ref.getInt("id"), 0)
-
-        // val image = new ImageInDB(ref.getString("dbid"), ref.getInt("source_size"),
-                              // ref.getInt("id"))
-        loadedImages += (ref.getString("dbid") -> image)
-        currentDbid = ref.getString("dbid")
-        if(ref.getInt("id") > lastIdSeen){
-          lastIdSeen = ref.getInt("id")
-        }
-        registerDbid(ref.getString("dbid"))
-        println("New image registered " + ref.getString("dbid"))
+        registerDbid(image.dbid)
+        println("New image registered " + image.id)
       }
     }
 
@@ -207,15 +212,87 @@ package mypod {
       dbid
     }
 
-    def registerSubImage(args: ParserObj) = {
+    def registerSubImage(subImage: SubImage) = {
       if(loadedImages contains currentDbid){
-        val subImage = SubImage(args.getInt("storage_id"), args.getInt("offset"),
-                                args.getInt("imgsize"), args.getInt("vpadding"),
-                                args.getInt("hpadding"), args.getInt("height"),
-                                args.getInt("width"), args.getString("path"))
         loadedImages.get(currentDbid).get.subImages :+= subImage
         registerStorage(subImage)
       }
+    }
+
+    case class StorageCacheEntry(start: Int, end: Int, fileName: String)
+
+    var storageCache: Map[Int, StorageCacheEntry] = Map()
+    def injectImage(subImages: Array[BufferedImage]) = {
+      val imageDbid = getNextDbid
+      val sourceSize = 999
+      val image = new LoadedImage(imageDbid, sourceSize, lastIdSeen + 1, 0)
+      registerNewImage(image)
+      for(i <- 0 until subImages.length) {
+        val subImage = subImages(i)
+        val profile = imageProfiles(i)
+        if(!storageCache.contains(profile.storageId)){
+          val entry = writeImageToDB(subImage, profile)
+          storageCache += profile.storageId -> entry
+        }
+        val dbInfo = storageCache.get(profile.storageId).get
+
+        val imageSize = profile.width * profile.height * 2 - profile.drop
+
+        val subImageObj = SubImage(profile.storageId, dbInfo.start, imageSize,
+                                   0, 0, subImage.getHeight, subImage.getWidth,
+                                   ":" + dbInfo.fileName)
+        registerSubImage(subImageObj)
+      }
+      imageDbid
+    }
+
+    def writeImageToDB(subImage: BufferedImage, profile: ImageProfile) = {
+      val filePrefix = "F" + profile.storageId + "_"
+      val fileExt = ".ithmb"
+      if(!storageChunks.contains(profile.storageId)){
+        storageChunks += profile.storageId -> new iThmbEntry(0)
+      }
+      val ithmbEntry = storageChunks.get(profile.storageId).get
+      var startOffset = ithmbEntry.lastOffsetUsed
+      var fileIndex = ithmbEntry.lastIndexUsed
+
+      val dataBuffer = subImage.getData().getDataBuffer().asInstanceOf[DataBufferUShort]
+      val dataLength = dataBuffer.getSize * 2 - profile.drop
+
+      // val storageCacheEntry = storageCache.get(storageId).get
+
+      var fileName = ""
+      var found = false
+      while(!found){
+        println("TRYING " + startOffset)
+        fileName = filePrefix + fileIndex + fileExt
+        if(ithmbEntry.getUsed(":" + fileName, startOffset) == 0) {
+          println("Writing to " + fileName)
+          found = true
+        }else if(startOffset >= MAX_ITHMB_SIZE) {
+          startOffset = -dataLength
+          fileIndex += 1
+        }else{
+          startOffset += dataLength
+        }
+      }
+
+      ithmbEntry.lastIndexUsed = fileIndex
+      ithmbEntry.lastOffsetUsed = startOffset
+
+      val ithmbFile = new File(artworkDir, fileName)
+
+      val byteBuffer = iTunesDB.Util.newByteBuffer(dataBuffer.getSize * 2)
+      byteBuffer.asShortBuffer().put(dataBuffer.getData)
+      byteBuffer.limit(dataLength)
+
+      val out = new FileOutputStream(ithmbFile, true).getChannel();
+      out.position(startOffset)
+      out.write(byteBuffer);
+      val endOffset = out.position
+      out.close();
+
+      StorageCacheEntry(startOffset, endOffset.toInt, fileName)
     }
 
     var storageChunks: Map[Int, iThmbEntry] = Map()
@@ -229,6 +306,18 @@ package mypod {
 
     class iThmbEntry(val imageSize: Int){
       private var entries: ParserObj = ParserObj(Map())
+
+      var lastOffsetUsed = 0
+      var lastIndexUsed = 1
+
+      def getUsed(path: String, offset: Int) = {
+        if(entries.has(path) && entries.getObj(path).has(offset)){
+          entries.getObj(path).getInt(offset)
+        }else{
+          0
+        }
+      }
+
       def used(path: String, offset: Int) = {
         if(!entries.has(path)){
           entries.set(path, ParserObj(Map()))
@@ -239,6 +328,7 @@ package mypod {
         entries.getObj(path).set(offset, entries.getObj(path).getInt(offset) + 1)
       }
     }
+
 
 
 
@@ -265,23 +355,23 @@ package mypod {
     //   ithumbLog.used(path, offset)
     // }
 
-    // def prepareImage(source: BufferedImage) = {
-    //   var subImages = ArrayBuffer[BufferedImage]()
+    def prepareImage(source: BufferedImage) = {
+      var subImages = Array[BufferedImage]()
 
-    //   for(p <- imageProfiles) {
-    //     val resizedImage: BufferedImage = new BufferedImage(p.width, p.height,
-    //                                                         BufferedImage.TYPE_USHORT_565_RGB)
-    //     val g: Graphics = resizedImage.createGraphics()
-    //     g.drawImage(source, 0, 0, p.width, p.height, null)
-    //     g.dispose()
+      for(p <- imageProfiles) {
+        val resizedImage: BufferedImage = new BufferedImage(p.width, p.height,
+                                                            BufferedImage.TYPE_USHORT_565_RGB)
+        val g: Graphics = resizedImage.createGraphics()
+        g.drawImage(source, 0, 0, p.width, p.height, null)
+        g.dispose()
 
-    //     subImages += resizedImage
+        subImages = subImages :+ resizedImage
 
-    //     // ImageIO.write(resizedImage, "png", new File("/Users/sam/Downloads/" + p.width + ".png"));
-    //   }
+        // ImageIO.write(resizedImage, "png", new File("/Users/sam/Downloads/" + p.width + ".png"));
+      }
 
-    //   subImages
-    // }
+      subImages
+    }
 
     // def injectImage(subImages: ArrayBuffer[BufferedImage]) = {
     //   val imageId = getNextDbid

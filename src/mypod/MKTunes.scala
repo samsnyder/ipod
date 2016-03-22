@@ -46,7 +46,7 @@ package mypod {
 
     def writeAllPlaylists(out: ByteBuffer, playlists: Array[LibPlaylist]) = {
       val masterBuffer: ByteBuffer = iTunesDB.Util.newByteBuffer
-      val masterPlaylist = new LibPlaylist("Test iPod", Array("testid"))
+      val masterPlaylist = new LibPlaylist("Test iPod", Array("cool", "hi", "nice"))
       createPlaylist(masterBuffer, masterPlaylist, true, MPL_UID)
       masterBuffer.flip
 
@@ -141,7 +141,6 @@ package mypod {
 
       trackIdMap += track.get("id") -> currentiTunesId
 
-      
 
       iTunesDB.mkMhit(out, currentiTunesId, currentDbid, mhodChunks.position,
                       mhodCount, track, null)
