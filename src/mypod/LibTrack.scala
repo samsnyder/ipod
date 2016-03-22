@@ -1,17 +1,18 @@
 
 package mypod {
   class LibTrack() {
+    val coverId = 1
     var map: Map[String, String] = Map("playcount" -> "0",
                                        "filesize" -> "4408873",
                                        "bitrate" -> "160",
                                        "title" -> "Till I\'m Gone - feat. Wiz Khalifa",
-                                       "artist" -> "Tinie Tempah",
+                                       "artist" -> "Tidffnie Tempah",
                                        "fdesc" -> "MP3 (MPEG audio layer 3)",
                                        "cdnum" -> "1",
                                        "mediatype" -> "1",
                                        "addtime" -> "3541171245",
                                        "year" -> "2011",
-                                       "id" -> "1",
+                                       "id" -> "testid",
                                        "soundcheck" -> "",
                                        "composer" -> "Parlophone UK",
                                        "srate" -> "44100",

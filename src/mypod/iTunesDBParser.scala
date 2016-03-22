@@ -29,14 +29,14 @@ package mypod {
       def getUTF16(in: ByteBuffer, o: Int, len: Int) = {
         val sb = new StringBuilder()
         in.position(o)
-        for(_ <- 1 to len){
+        for(_ <- 1 to (len / 2)){
           sb.append(in.getChar())
         }
         sb.toString
       }
 
       def getInt(in: ByteBuffer, o: Int) = in.getInt(o)
-      def getShort(in: ByteBuffer, o: Int) = in.getShort(o)
+      def getShort(in: ByteBuffer, o: Int) = in.getShort(o).toInt
 
       def getHexString(in: ByteBuffer, o: Int) = {
         val sb = new StringBuilder()
@@ -224,6 +224,7 @@ package mypod {
         val stringLength = Util.getInt(in, o + 24)
         obj.set("string",
                 Util.getUTF16(in, o + obj.getInt("total_size") - stringLength, stringLength))
+        println("HTRG " + obj.getString("string"))
         obj.set("header_size", obj.get("total_size"))
       }
 

@@ -49,6 +49,7 @@ package mypod {
 
     def mkMhfd(out: ByteBuffer): Unit = mkMhfd(out, 0, 0, 0)
     def mkMhfd(out: ByteBuffer, size: Int, childs: Int, nextId: Int) = {
+
       Util.writeAscii(out, "mhfd")
       Util.writeInt(out, 0x84)
       Util.writeInt(out, 0x84 + size)
@@ -85,15 +86,18 @@ package mypod {
       }
     }
 
-    def mkAwdbMhod(out: ByteBuffer, objType: Int, payload: String) {
+    def mkAwdbMhod(out: ByteBuffer, objType: Int, payloadAny: Any) {
       val append: ByteBuffer = Util.newByteBuffer(1000)
       if(objType == 0x03){
+        val payload = payloadAny.asInstanceOf[String]
         Util.writeInt(append, payload.length * 2)
         Util.writeInt(append, 0x02)
         Util.writeInt(append, 0x00)
         Util.writeUTF16(append, payload)
+        println(payload.length + " - " + payload)
       }else{
-        Util.writeUTF16(append, payload)
+        val payload = payloadAny.asInstanceOf[ByteBuffer]
+        append.put(payload)
       }
 
       val sizeHeader = 0x18
@@ -105,6 +109,7 @@ package mypod {
       Util.writeInt(out, objType)
       Util.writeInt(out, 0)
       Util.writeInt(out, 0)
+      append.flip
       out.put(append)
     }
 
@@ -119,13 +124,14 @@ package mypod {
       Util.writeInt(out, image.storageId)
       Util.writeInt(out, image.offset)
       Util.writeInt(out, image.imageSize)
-      Util.writeInt(out, image.vPadding)
-      Util.writeInt(out, image.hPadding)
-      Util.writeInt(out, image.height)
-      Util.writeInt(out, image.width)
+      Util.writeShort(out, image.vPadding)
+      Util.writeShort(out, image.hPadding)
+      Util.writeShort(out, image.height)
+      Util.writeShort(out, image.width)
       Util.writeInt(out, 0)
       Util.writeInt(out, image.imageSize)
       for(_ <- 1 to 8) Util.writeInt(out, 0)
+      out.put(payload)
     }
 
     def mkMhsd(out: ByteBuffer): Unit = mkMhsd(out, 0, 0)
@@ -206,6 +212,43 @@ package mypod {
 
     }
 
+    def mkMhif(out: ByteBuffer, childs: Int, id: Int, imageSize: Int) = {
+      val sizeHeader = 0x7c
+      val sizeMhif = sizeHeader
+
+      Util.writeAscii(out, "mhif")
+      Util.writeInt(out, sizeHeader)
+      Util.writeInt(out, sizeMhif)
+      Util.writeInt(out, childs)
+      Util.writeInt(out, id)
+      Util.writeInt(out, imageSize)
+      for(_ <- 1 to 25) Util.writeInt(out, 0)
+    }
+
+    def mkMhii(out: ByteBuffer, dbid: String, childs: Int, payload: ByteBuffer,
+               id: Int, rating: Int, sourceSize: Int) = {
+      val sizeHeader = 0x98
+      val sizeTotal = sizeHeader + payload.limit
+
+      Util.writeAscii(out, "mhii")
+      Util.writeInt(out, sizeHeader)
+      Util.writeInt(out, sizeTotal)
+      Util.writeInt(out, childs)
+      Util.writeInt(out, id)
+      Util.writeHexString(out, dbid)
+      Util.writeInt(out, 0)
+      Util.writeInt(out, rating)
+      Util.writeInt(out, 0)
+      Util.writeInt(out, 0)
+      Util.writeInt(out, 0)
+      Util.writeInt(out, sourceSize)
+      Util.writeInt(out, 0)
+      Util.writeInt(out, 1)
+      Util.writeInt(out, 1)
+      for(_ <- 1 to 22) Util.writeInt(out, 0)
+      out.put(payload)
+    }
+
     def mkMhip(out: ByteBuffer, childs: Int, playlistId: Int, trackId: Int, size: Int) = {
       Util.writeAscii(out, "mhip")
       Util.writeInt(out, 76)
@@ -252,14 +295,12 @@ package mypod {
       out.put(append)
     }
 
-    def mkMhit(out: ByteBuffer, cId: Int, size: Int, count: Int,
+    def mkMhit(out: ByteBuffer, cId: Int, dbid: String, size: Int, count: Int,
                track: LibTrack, artworkDb: ArtworkDB) = {
       println("SKIPPING VOLUME")
       println("SKIPPING RATING")
 
-      // val cId: Int = track.get("id").toInt
-      val dbid: String = "0100000000000000"
-      val randCoverId: Int = 0
+      val randCoverId: Int = track.coverId
 
       Util.writeAscii(out, "mhit")
       Util.writeInt(out, 0x184)

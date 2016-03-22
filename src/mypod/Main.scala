@@ -17,7 +17,11 @@ package mypod {
       // val images: ArrayBuffer[BufferedImage] = aDb.prepareImage(in)
       // aDb.injectImage(images)
 
-      // MKTunes.writeDB()
+      val tracks = Array(new LibTrack())
+      val playlists = Array(new LibPlaylist("playyyy", Array("testid", "cool")))
+
+      val mkTunes = new MKTunes(aDb)
+      mkTunes.writeDB(tracks, playlists)
 
       aDb.writeArtworkDb
     }
