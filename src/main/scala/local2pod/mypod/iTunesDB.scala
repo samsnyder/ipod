@@ -298,7 +298,16 @@ package local2pod.mypod {
                track: LibTrack, artworkDb: ArtworkDB) = {
       val volume = 50
 
-      val randCoverId: Int = artworkDb.getiTunesArtId(track.coverId)
+
+      val randCoverId: Int = {
+        if(track.get("has_artwork").toInt != 0){
+          artworkDb.getiTunesArtId(track.get("artworkId"))
+        }else{
+          1
+        }
+      }
+
+      println(randCoverId)
 
       Util.writeAscii(out, "mhit")
       Util.writeInt(out, 0x184)

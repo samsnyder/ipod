@@ -3,12 +3,13 @@ import java.nio._;
 import java.nio.channels._;
 
 package local2pod.mypod {
-  class MKTunes(artworkDb: ArtworkDB) {
+  class MKTunes(itunesDir: File, artworkDb: ArtworkDB) {
     val MPL_UID = 1234567890
 
 
     def writeDB(tracks: Array[LibTrack], playlists: Array[LibPlaylist]) = {
-      val out: ByteBuffer = ByteBuffer.allocateDirect(99999);
+
+      val out: ByteBuffer = ByteBuffer.allocateDirect(10 * 1024 * 1024);
       out.order(ByteOrder.LITTLE_ENDIAN)
 
       iTunesDB.mkMhbd(out)
@@ -17,7 +18,6 @@ package local2pod.mypod {
 
       iTunesDB.mkMhsd(out)
       var mhsdSize = out.position()
-
 
       iTunesDB.mkMhlt(out, tracks.length)
       for(track <- tracks){
@@ -36,7 +36,7 @@ package local2pod.mypod {
 
       Hash58.hashBuffer(out, "000a27002135e037")
 
-      val outFilePath: File = new File("/Users/sam/Downloads/iTunesDB")
+      val outFilePath: File = new File(itunesDir, "iTunesDB")
       val channel: FileChannel = new FileOutputStream(outFilePath, false).getChannel();
       out.position(0)
       channel.write(out);
@@ -46,7 +46,7 @@ package local2pod.mypod {
 
     def writeAllPlaylists(out: ByteBuffer, tracks: Array[LibTrack],
                           playlists: Array[LibPlaylist]) = {
-      val masterBuffer: ByteBuffer = iTunesDB.Util.newByteBuffer
+      val masterBuffer: ByteBuffer = iTunesDB.Util.newByteBuffer(10 * 1024 * 1024)
       val allTrackIds = tracks.map(track => track.get("id"))
       val masterPlaylist = new LibPlaylist("Test iPod", allTrackIds)
       createPlaylist(masterBuffer, masterPlaylist, true, MPL_UID)
@@ -71,10 +71,8 @@ package local2pod.mypod {
       iTunesDB.mkMhlp(out, 2 + playlistCount)
       out.put(masterBuffer)
       out.put(playlistsBuffer)
-      // iTunesDB.Util.writeAscii(out, "test")
       out.put(podcastBuffer)
 
-      // iTunesDB.Util.writeAscii(out, "test")
       iTunesDB.mkMhsd(out, 92 + playlistsBuffer.limit + masterBuffer.limit, 2)
       iTunesDB.mkMhlp(out, 1 + playlistCount)
 
@@ -86,7 +84,7 @@ package local2pod.mypod {
 
     def createPlaylist(out: ByteBuffer, playlist: LibPlaylist, isHidden: Boolean,
                        playlistId: Int) = {
-      val buffer: ByteBuffer = iTunesDB.Util.newByteBuffer
+      val buffer: ByteBuffer = iTunesDB.Util.newByteBuffer(10 * 1024 * 1024)
       var childCount = 0
       var songsCount = 0
       for(id <- playlist.tracks){
