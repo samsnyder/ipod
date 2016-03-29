@@ -3,7 +3,7 @@ import java.nio._;
 import java.nio.channels._;
 
 package local2pod.mypod {
-  class MKTunes(itunesDir: File, artworkDb: ArtworkDB) {
+  class MKTunes(itunesDir: File, artworkDb: ArtworkDB, ipodName: String) {
     val MPL_UID = 1234567890
 
 
@@ -25,7 +25,7 @@ package local2pod.mypod {
       }
       mhsdSize = out.position() - mhsdSize
 
-      writeAllPlaylists(out, tracks, playlists)
+      writeAllPlaylists(out, tracks, playlists, ipodName)
       mhbdSize = out.position - mhbdSize
 
       out.flip
@@ -37,6 +37,7 @@ package local2pod.mypod {
       Hash58.hashBuffer(out, "000a27002135e037")
 
       val outFilePath: File = new File(itunesDir, "iTunesDB")
+      outFilePath.getParentFile().mkdirs()
       val channel: FileChannel = new FileOutputStream(outFilePath, false).getChannel();
       out.position(0)
       channel.write(out);
@@ -45,14 +46,15 @@ package local2pod.mypod {
     }
 
     def writeAllPlaylists(out: ByteBuffer, tracks: Array[LibTrack],
-                          playlists: Array[LibPlaylist]) = {
+                          playlists: Array[LibPlaylist],
+                          ipodName: String) = {
       val masterBuffer: ByteBuffer = iTunesDB.Util.newByteBuffer(10 * 1024 * 1024)
       val allTrackIds = tracks.map(track => track.get("id"))
-      val masterPlaylist = new LibPlaylist("Test iPod", allTrackIds)
+      val masterPlaylist = new LibPlaylist(ipodName, allTrackIds)
       createPlaylist(masterBuffer, masterPlaylist, true, MPL_UID)
       masterBuffer.flip
 
-      val playlistsBuffer: ByteBuffer = iTunesDB.Util.newByteBuffer
+      val playlistsBuffer: ByteBuffer = iTunesDB.Util.newByteBuffer(10 * 1024 * 1024)
       val playlistCount = playlists.length
       for(playlist <- playlists){
         val playlistId = getNextiTunesId
@@ -129,7 +131,7 @@ package local2pod.mypod {
       var mhodCount = 0
 
       for((key, value) <- track.map) {
-        if(value.length > 0){
+        if(value != null && value.length > 0){
           if(iTunesDB.mkMhod(mhodChunks, key, value)){
             mhodCount += 1
           }

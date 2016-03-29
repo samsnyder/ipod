@@ -298,16 +298,13 @@ package local2pod.mypod {
                track: LibTrack, artworkDb: ArtworkDB) = {
       val volume = 50
 
-
-      val randCoverId: Int = {
+      val coverId: Int = {
         if(track.get("has_artwork").toInt != 0){
           artworkDb.getiTunesArtId(track.get("artworkId"))
         }else{
           1
         }
       }
-
-      println(randCoverId)
 
       Util.writeAscii(out, "mhit")
       Util.writeInt(out, 0x184)
@@ -378,7 +375,7 @@ package local2pod.mypod {
       Util.writeShort(out, track.get("has_gapless").toInt)
       Util.writeShort(out, track.get("nocrossfade").toInt)
       for(_ <- 1 to 23) Util.writeInt(out, 0)
-      Util.writeInt(out, randCoverId)
+      Util.writeInt(out, coverId)
       for(_ <- 1 to 8) Util.writeInt(out, 0)
     }
 

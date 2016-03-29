@@ -27,11 +27,14 @@ package local2pod.mypod {
     //                                    "path" -> ":iPod_Control:Music:F5:00gm39uHwBnhjIvCkOU2SC.mp3",
     //                                    "time" -> "213812"
     //                                    )
-    def set(key: String, value: String) = map += key -> value
+    def set(key: String, value: Option[Any]) = value match {
+      case Some(v) => map += key -> v.toString
+      case None =>
+    }
 
     def get(key: String) = {
       map.get(key) match {
-        case Some(value) => if(value.length == 0) "0" else value
+        case Some(value) => if(value == null || value.length == 0) "0" else value
         case None => "0"
       }
     }

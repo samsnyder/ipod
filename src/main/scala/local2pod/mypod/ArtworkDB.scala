@@ -3,9 +3,10 @@ import java.nio._;
 import java.nio.channels._;
 import java.awt.image._;
 import java.awt.{Graphics};
-import javax.imageio._;
+// import javax.imageio._;
 import java.math.BigInteger;
 import scala.collection.mutable.{ArrayBuffer};
+import org.imgscalr._
 
 package local2pod.mypod {
   case class ImageProfile(width: Int, height: Int, storageId: Int, drop: Int){
@@ -13,7 +14,7 @@ package local2pod.mypod {
   }
 
   case class LoadedImage(val dbid: String, val sourceSize: Int, val id: Int,
-                    val rating: Int, val subImages: List[SubImage]) {
+                    val rating: Int, val subImages: Array[SubImage]) {
   }
   case class SubImage(val profile: ImageProfile, val offset: Int,
                       val path: String) {
@@ -41,21 +42,23 @@ package local2pod.mypod {
 
   // }
 
-  @SerialVersionUID(100L)
-  class ArtworkDB(artworkDir: File) extends Serializable {
-    private val MAX_ITHMB_SIZE = 268435456
-    private var loadedImages: Map[String, LoadedImage] = Map()
-    private val artworkDbFile = new File(artworkDir, "ArtworkDB")
+  object ArtworkDB {
+    def getArtworkDir(mountDir: File) = new File(mountDir, "iPod_Control/Artwork")
+  }
 
-    private val imageProfiles = Array(
+  class ArtworkDB() {
+    private val MAX_ITHMB_SIZE: Long = 268435456L
+    private var loadedImages: Map[String, LoadedImage] = Map()
+
+    private val imageProfiles = Array[ImageProfile](
       ImageProfile(320, 320, 1060, 0),
       ImageProfile(128, 128, 1055, 0),
       ImageProfile(56, 56, 1061, 112)
     )
 
-    def addImage(image: BufferedImage, artworkId: String) = {
+    def addImage(image: BufferedImage, artworkId: String, mountDir: File) = {
       val subImages = prepareImage(image)
-      injectImage(subImages, artworkId)
+      injectImage(subImages, artworkId, ArtworkDB.getArtworkDir(mountDir))
     }
 
     def hasArtId(artId: String): Boolean = loadedImages contains artId
@@ -74,7 +77,7 @@ package local2pod.mypod {
     //   oos.close
     // }
 
-    def writeArtworkDb = {
+    def writeArtworkDb(mountDir: File) = {
       val out: ByteBuffer = iTunesDB.Util.newByteBuffer(50 * 1024 * 2014);
 
       val mhfdFixup = out.position
@@ -137,6 +140,8 @@ package local2pod.mypod {
       out.position(0)
       iTunesDB.mkMhfd(out, mhfdSize, 0x03, getNextiTunesId)
 
+      val artworkDbFile = new File(ArtworkDB.getArtworkDir(mountDir), "ArtworkDB")
+      artworkDbFile.getParentFile().mkdirs()
       val channel: FileChannel = new FileOutputStream(artworkDbFile, false).getChannel();
       out.position(0)
       channel.write(out);
@@ -157,7 +162,8 @@ package local2pod.mypod {
       lastiTunesIdUsed
     }
 
-    private def injectImage(subImages: Array[BufferedImage], artworkId: String) = {
+    private def injectImage(subImages: Array[BufferedImage], artworkId: String,
+                            artworkDir: File) = {
       val imageDbid = getNextDbid
       val sourceSize = 0
 
@@ -165,7 +171,7 @@ package local2pod.mypod {
       for(i <- 0 until subImages.length) {
         val subImage = subImages(i)
         val profile = imageProfiles(i)
-        writeImageToiThmb(subImage, profile) match {
+        writeImageToiThmb(subImage, profile, artworkDir) match {
           case (fileName, imageOffset) => {
             subImageObjs :+= SubImage(profile, imageOffset, ":" + fileName)
           }
@@ -173,14 +179,16 @@ package local2pod.mypod {
       }
 
       val image = LoadedImage(imageDbid, sourceSize, getNextiTunesId,
-                                  0, subImageObjs)
+                                  0, subImageObjs.toArray)
 
       loadedImages += artworkId -> image
     }
 
-    private def writeImageToiThmb(subImage: BufferedImage, profile: ImageProfile) = {
+    private def writeImageToiThmb(subImage: BufferedImage, profile: ImageProfile,
+                                  artworkDir: File) = {
       val fileName = findSmallEnoughiThmb(profile)
       val ithmbFile = new File(artworkDir, fileName)
+      ithmbFile.getParentFile().mkdirs()
 
       val shortBuffer = subImage.getData().getDataBuffer().asInstanceOf[DataBufferUShort]
 
@@ -203,22 +211,16 @@ package local2pod.mypod {
       "F" + profile.storageId + "_" + index + ".ithmb"
     }
 
-    private def prepareImage(source: BufferedImage) = {
-      var subImages = Array[BufferedImage]()
-
-      for(p <- imageProfiles) {
-        val resizedImage: BufferedImage = new BufferedImage(p.width, p.height,
-                                                            BufferedImage.TYPE_USHORT_565_RGB)
-        val g: Graphics = resizedImage.createGraphics()
-        g.drawImage(source, 0, 0, p.width, p.height, null)
-        g.dispose()
-
-        subImages = subImages :+ resizedImage
-
-        // ImageIO.write(resizedImage, "png", new File("/Users/sam/Downloads/" + p.width + ".png"));
-      }
-
-      subImages
+    private def prepareImage(source: BufferedImage): Array[BufferedImage] = {
+      imageProfiles.map(p => {
+                          val image = Scalr.resize(source, p.width, p.height);
+                          val resizedImage = new BufferedImage(p.width, p.height,
+                                                               BufferedImage.TYPE_USHORT_565_RGB)
+                          val g: Graphics = resizedImage.createGraphics()
+                          g.drawImage(image, 0, 0, p.width, p.height, null)
+                          g.dispose()
+                          resizedImage
+                        })
     }
   }
 
