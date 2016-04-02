@@ -4,10 +4,11 @@ import javax.imageio.ImageIO
 import java.awt.image._
 import com.mpatric.mp3agic._
 import scala.util._
+import com.typesafe.scalalogging._
 
 package local2pod.core {
 
-  object Track {
+  object Track extends LazyLogging {
     def fromFile(t: (File, String), copyFileToiPod: Tuple2[File, String] => String) = t match{
       case(file, id) => {
         val mp3 = new Mp3File(file.getPath)
@@ -31,7 +32,13 @@ package local2pod.core {
                 getTag(tags.getAlbumImage) match {
                   case None => None
                   case Some(bytes) =>
-                    Some(ImageIO.read(new ByteArrayInputStream(tags.getAlbumImage)))
+                    Try(ImageIO.read(new ByteArrayInputStream(tags.getAlbumImage))) match {
+                      case Success(i) => Some(i)
+                      case Failure(e) => {
+                        logger.error("Error reading artwork", e)
+                        None
+                      }
+                    }
                 }
               })
       }

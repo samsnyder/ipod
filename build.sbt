@@ -1,6 +1,6 @@
 lazy val root = (project in file(".")).
   settings(
-    name := "MyPod",
+    name := "ipod",
     version := "1.0",
     scalaVersion := "2.11.8",
     libraryDependencies += "org.scala-lang.modules" %% "scala-pickling" % "0.10.1",
@@ -10,6 +10,7 @@ lazy val root = (project in file(".")).
     libraryDependencies += "commons-cli" % "commons-cli" % "1.2",
     libraryDependencies += "org.apache.commons" % "commons-io" % "1.3.2",
     // libraryDependencies += "com.typesafe.scala-logging" % "scala-logging_2.11" % "3.1.0",
+    libraryDependencies += "io.airlift" % "airline" % "0.7",
     libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
     libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.1.2",
     libraryDependencies += "org.json4s" %% "json4s-native" % "3.3.0",

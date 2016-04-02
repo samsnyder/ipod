@@ -32,7 +32,6 @@ package local2pod.core {
       LocalReader.getMusicFiles(spotifyDir).map{
         file => (file, file.getName.replace(".mp3", ""))
       }
-      List()
     }
 
     def getLocalIds: List[(File, String)] = {
@@ -113,6 +112,7 @@ package local2pod.core {
           save(ipodName)
         }
       }
+      save(ipodName)
 
       logger.info("Added all tracks")
     }
