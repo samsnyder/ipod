@@ -1,5 +1,5 @@
 
-package local2pod.mypod {
+package uk.ac.cam.ss2249.ipod.mypod {
   class LibTrack() {
 
     var map: Map[String, String] = Map("mediatype" -> "1")

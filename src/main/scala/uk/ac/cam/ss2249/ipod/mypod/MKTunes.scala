@@ -2,8 +2,8 @@ import java.io._
 import java.nio._;
 import java.nio.channels._;
 
-package local2pod.mypod {
-  class MKTunes(itunesDir: File, artworkDb: ArtworkDB, ipodName: String) {
+package uk.ac.cam.ss2249.ipod.mypod {
+  class MKTunes(itunesDir: File, artworkDb: ArtworkDB, ipodName: String, guid: String) {
     val MPL_UID = 1234567890
 
 
@@ -34,7 +34,7 @@ package local2pod.mypod {
       iTunesDB.mkMhsd(out, mhsdSize, 1)
 
 
-      Hash58.hashBuffer(out, "000a27002135e037")
+      Hash58.hashBuffer(out, guid)
 
       val outFilePath: File = new File(itunesDir, "iTunesDB")
       outFilePath.getParentFile().mkdirs()

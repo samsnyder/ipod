@@ -1,6 +1,6 @@
-import local2pod.mypod._
+import uk.ac.cam.ss2249.ipod.mypod._
 
-package local2pod.core {
+package uk.ac.cam.ss2249.ipod.core {
   case class Playlist(name: String, tracks: Array[String]){
     def getLibPlaylist: LibPlaylist = {
       LibPlaylist(name, tracks.toArray)

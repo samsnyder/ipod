@@ -1,6 +1,6 @@
+import uk.ac.cam.ss2249.ipod.mypod._
 import java.io._;
 import java.nio.file._
-import local2pod.mypod._
 import java.awt.image._;
 import scala.pickling.Defaults._
 import scala.pickling.json._
@@ -10,7 +10,7 @@ import org.apache.commons.io.FileUtils
 import com.typesafe.scalalogging._
 // import scala.pickling.static._
 
-package local2pod.core {
+package uk.ac.cam.ss2249.ipod.core {
   object iPodLibrary extends LazyLogging {
 
     def waitForDir(dir: File): Unit = waitForDir(dir, true)
@@ -25,7 +25,7 @@ package local2pod.core {
       }
     }
 
-    def loadMyLibrary(mountDir: File): iPodLibrary = {
+    def loadMyLibrary(mountDir: File, guid: String): iPodLibrary = {
       waitForDir(mountDir)
 
       val lib = Try{
@@ -42,6 +42,7 @@ package local2pod.core {
         }
       }
       lib.mountDir = mountDir.getPath
+      lib.guid = guid
       lib
     }
 
@@ -52,9 +53,10 @@ package local2pod.core {
 
   class iPodLibrary private () extends LazyLogging {
     @transient var mountDir: String = ""
+    @transient var guid: String = ""
 
     private var artworkDb = new ArtworkDB()
-    private var tracks: Map[String, Track] = Map()
+    var tracks: Map[String, Track] = Map()
     private var playlists: Array[Playlist] = Array()
 
     def reset = {
@@ -68,7 +70,7 @@ package local2pod.core {
 
     def writeToiPod(ipodName: String) = {
       val itunesDir = new File(mountDir, "iPod_Control/iTunes")
-      val mkTunes = new MKTunes(itunesDir, artworkDb, ipodName)
+      val mkTunes = new MKTunes(itunesDir, artworkDb, ipodName, guid)
       val libTracks = tracks.map{
         case (_, track) => track.getLibTrack
       }.toArray.asInstanceOf[Array[LibTrack]]
@@ -117,11 +119,33 @@ package local2pod.core {
       }
     }
 
+    def deleteTrack(id: String): Option[Track] = {
+      val track = tracks get id
+      track.map{
+        track => {
+          tracks -= track.id
+          track.path map {
+            path => {
+              val relPath = path.stripPrefix(":").replace(":", "/")
+              val absPath = new File(mountDir, relPath)
+              logger.debug("Deleting file {}", absPath)
+              Files.deleteIfExists(absPath.toPath)
+            }
+          }
+        }
+      }
+      track
+    }
+
     def hasId(id: String): Boolean = tracks contains id
 
-    def getIds: Array[String] = tracks.map{
+    def getTrack(id: String): Option[Track] = tracks get id
+
+    def numTracks = tracks.size
+
+    def getIds: List[String] = tracks.map{
       case (id, _) => id
-    }.toArray.asInstanceOf[Array[String]]
+    }.toList
 
     def saveMyLibrary() = {
       val json = this.pickle.value

@@ -1,5 +1,5 @@
 
-package local2pod.mypod {
+package uk.ac.cam.ss2249.ipod.mypod {
   object DBID{
     def increment(str: String) = {
       toString(fromString(str) + 1)

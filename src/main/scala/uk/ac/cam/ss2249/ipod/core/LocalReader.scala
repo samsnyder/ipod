@@ -5,7 +5,7 @@ import org.json4s.native.JsonMethods._
 import com.mpatric.mp3agic._
 import java.net._
 
-package local2pod.core {
+package uk.ac.cam.ss2249.ipod.core {
 
   object LocalReader {
     def getMusicFiles(dir: File): List[File] = {
@@ -89,33 +89,33 @@ package local2pod.core {
       }
     }
 
-    def fill(ipodName: String) = {
+    // def fill(ipodName: String) = {
 
-      val ids = getIds
-      val toDownload = ids.filter{
-        case (file, id) => !ipodLib.hasId(id)
-      }
-      logger.info("Adding {} songs.", toDownload.length.toString)
+    //   val ids = getIds
+    //   val toDownload = ids.filter{
+    //     case (file, id) => !ipodLib.hasId(id)
+    //   }
+    //   logger.info("Adding {} songs.", toDownload.length.toString)
 
-      var numDownload = 0
-      val tracks = toDownload.grouped(20).foreach{
-        group => {
-          group.foreach{
-            t => {
-              val track = Track.fromFile(t, t => ipodLib.copyFileToiPod(t))
-              ipodLib.addTrack(track)
-              numDownload += 1
-              logger.info("\rAdded {} - {}", track.title, track.artist)
-              print(numDownload + " / " + toDownload.length)
-            }
-          }
-          save(ipodName)
-        }
-      }
-      save(ipodName)
+    //   var numDownload = 0
+    //   val tracks = toDownload.grouped(20).foreach{
+    //     group => {
+    //       group.foreach{
+    //         t => {
+    //           val track = Track.fromFile(t, Some(t => ipodLib.copyFileToiPod(t)))
+    //           ipodLib.addTrack(track)
+    //           numDownload += 1
+    //           logger.info("\rAdded {} - {}", track.title, track.artist)
+    //           print(numDownload + " / " + toDownload.length)
+    //         }
+    //       }
+    //       save(ipodName)
+    //     }
+    //   }
+    //   save(ipodName)
 
-      logger.info("Added all tracks")
-    }
+    //   logger.info("Added all tracks")
+    // }
 
     def save(ipodName: String) = {
       logger.debug("Adding playlists")

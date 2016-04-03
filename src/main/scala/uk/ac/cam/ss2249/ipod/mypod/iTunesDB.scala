@@ -1,6 +1,6 @@
 import java.nio._
 
-package local2pod.mypod {
+package uk.ac.cam.ss2249.ipod.mypod {
 
   object iTunesDB {
 

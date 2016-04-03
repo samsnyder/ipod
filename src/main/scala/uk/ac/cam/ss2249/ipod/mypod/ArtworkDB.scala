@@ -8,7 +8,7 @@ import java.math.BigInteger;
 import scala.collection.mutable.{ArrayBuffer};
 import org.imgscalr._
 
-package local2pod.mypod {
+package uk.ac.cam.ss2249.ipod.mypod {
   case class ImageProfile(width: Int, height: Int, storageId: Int, drop: Int){
     val imageSize = width * height * 2 - drop
   }

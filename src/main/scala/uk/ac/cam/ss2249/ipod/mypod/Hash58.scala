@@ -3,7 +3,7 @@ import java.security._;
 import javax.crypto._;
 import javax.crypto.spec._;
 
-package local2pod.mypod {
+package uk.ac.cam.ss2249.ipod.mypod {
   object Hash58 {
     val OFFSET_UNK30 = 0x30
     val OFFSET_DBID = 0x18

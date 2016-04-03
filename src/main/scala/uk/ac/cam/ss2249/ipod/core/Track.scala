@@ -1,15 +1,17 @@
-import local2pod.mypod._
-import java.io._
+import scala.util._
+import uk.ac.cam.ss2249.ipod.mypod._
+import java.io.{Console => _, _}
 import javax.imageio.ImageIO
 import java.awt.image._
 import com.mpatric.mp3agic._
 import scala.util._
 import com.typesafe.scalalogging._
 
-package local2pod.core {
+package uk.ac.cam.ss2249.ipod.core {
 
   object Track extends LazyLogging {
-    def fromFile(t: (File, String), copyFileToiPod: Tuple2[File, String] => String) = t match{
+    def fromFile(t: (File, String), copyFileToiPod: Option[Tuple2[File, String] => String])
+      = t match{
       case(file, id) => {
         val mp3 = new Mp3File(file.getPath)
         val tags = mp3.getId3v2Tag
@@ -27,7 +29,10 @@ package local2pod.core {
               getTag(() => tags.getTrack.toInt),
               getTag(() => tags.getPartOfSet.toInt),
               getTag(() => mp3.getLengthInSeconds.asInstanceOf[Int] - 1),
-              copyFileToiPod(t),
+              copyFileToiPod match {
+                case Some(f) => Some(f(t))
+                case None => None
+              },
               () => {
                 getTag(tags.getAlbumImage) match {
                   case None => None
@@ -35,7 +40,10 @@ package local2pod.core {
                     Try(ImageIO.read(new ByteArrayInputStream(tags.getAlbumImage))) match {
                       case Success(i) => Some(i)
                       case Failure(e) => {
-                        logger.error("Error reading artwork", e)
+                        print(Console.RED)
+                        logger.error("\tError reading artwork {}", e.getMessage)
+                        logger.debug("Stack Trace", e)
+                        print(Console.RESET)
                         None
                       }
                     }
@@ -63,7 +71,7 @@ package local2pod.core {
                    trackNumber: Option[Int],
                    discNumber: Option[Int],
                    durationSeconds: Option[Int],
-                   path: String,
+                   path: Option[String],
                    getAlbumArt: (() => Option[BufferedImage])){
 
     def duration = durationSeconds match {
@@ -98,8 +106,16 @@ package local2pod.core {
         libTrack.set("artworkcnt", Some(1))
         libTrack.set("artworkId", Some(artworkId))
       }
-      libTrack.set("path", Some(path))
+      libTrack.set("path", path)
       libTrack
+    }
+
+    override def toString = {
+      val artistStr = artist match {
+        case Some(a) => a
+        case None => "Unknown Artist"
+      }
+      title + " - " + artistStr
     }
 
   }
