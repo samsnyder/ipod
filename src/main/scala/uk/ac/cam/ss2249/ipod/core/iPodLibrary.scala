@@ -8,7 +8,6 @@ import scala.util.{Try,Success,Failure}
 import scala.pickling.shareNothing._
 import org.apache.commons.io.FileUtils
 import com.typesafe.scalalogging._
-// import scala.pickling.static._
 
 package uk.ac.cam.ss2249.ipod.core {
   object iPodLibrary extends LazyLogging {
@@ -136,6 +135,8 @@ package uk.ac.cam.ss2249.ipod.core {
       }
       track
     }
+
+    def defragArtwork = artworkDb.defrag(new File(mountDir))
 
     def hasId(id: String): Boolean = tracks contains id
 

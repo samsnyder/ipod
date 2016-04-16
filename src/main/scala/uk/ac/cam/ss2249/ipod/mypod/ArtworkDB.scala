@@ -3,7 +3,6 @@ import java.nio._;
 import java.nio.channels._;
 import java.awt.image._;
 import java.awt.{Graphics};
-// import javax.imageio._;
 import java.math.BigInteger;
 import scala.collection.mutable.{ArrayBuffer};
 import org.imgscalr._
@@ -21,26 +20,6 @@ package uk.ac.cam.ss2249.ipod.mypod {
     val vPadding = 0
     val hPadding = 0
   }
-
-  // object ArtworkDB {
-  //   def loadMyArt(artworkDir: String) = {
-  //     try{
-  //       val file = getMyArtFile(artworkDir)
-  //       val ois = new ObjectInputStream(new FileInputStream(file))
-  //       val artworkDb = ois.readObject().asInstanceOf[ArtworkDB]
-  //       ois.close
-  //       artworkDb
-  //     }catch {
-  //       case _: Throwable => {
-  //         println("Could not load Artwork, creating new one")
-  //         new ArtworkDB(artworkDir)
-  //       }
-  //     }
-  //   }
-
-  //   def getMyArtFile(artworkDir: String) = new File(artworkDir, "MyArtwork")
-
-  // }
 
   object ArtworkDB {
     def getArtworkDir(mountDir: File) = new File(mountDir, "iPod_Control/Artwork")
@@ -69,13 +48,6 @@ package uk.ac.cam.ss2249.ipod.mypod {
         case None => 1
       }
     }
-
-    // def saveMyArt = {
-    //   val file = ArtworkDB.getMyArtFile(artworkDir)
-    //   val oos = new ObjectOutputStream(new FileOutputStream(file))
-    //   oos.writeObject(this)
-    //   oos.close
-    // }
 
     def writeArtworkDb(mountDir: File) = {
       val out: ByteBuffer = iTunesDB.Util.newByteBuffer(50 * 1024 * 2014);
@@ -171,7 +143,8 @@ package uk.ac.cam.ss2249.ipod.mypod {
       for(i <- 0 until subImages.length) {
         val subImage = subImages(i)
         val profile = imageProfiles(i)
-        writeImageToiThmb(subImage, profile, artworkDir) match {
+        val imageBuffer = getImageByteBuffer(subImage, profile)
+        writeImageToiThmb(imageBuffer, profile, artworkDir) match {
           case (fileName, imageOffset) => {
             subImageObjs :+= SubImage(profile, imageOffset, ":" + fileName)
           }
@@ -184,21 +157,24 @@ package uk.ac.cam.ss2249.ipod.mypod {
       loadedImages += artworkId -> image
     }
 
-    private def writeImageToiThmb(subImage: BufferedImage, profile: ImageProfile,
+    private def getImageByteBuffer(image: BufferedImage, profile: ImageProfile): ByteBuffer = {
+      val shortBuffer = image.getData().getDataBuffer().asInstanceOf[DataBufferUShort]
+
+      val byteBuffer = iTunesDB.Util.newByteBuffer(shortBuffer.getSize * 2)
+      byteBuffer.asShortBuffer().put(shortBuffer.getData)
+      byteBuffer.limit(profile.imageSize)
+      byteBuffer
+    }
+
+    private def writeImageToiThmb(imageBuffer: ByteBuffer, profile: ImageProfile,
                                   artworkDir: File) = {
       val fileName = findSmallEnoughiThmb(profile)
       val ithmbFile = new File(artworkDir, fileName)
       ithmbFile.getParentFile().mkdirs()
 
-      val shortBuffer = subImage.getData().getDataBuffer().asInstanceOf[DataBufferUShort]
-
-      val byteBuffer = iTunesDB.Util.newByteBuffer(shortBuffer.getSize * 2)
-      byteBuffer.asShortBuffer().put(shortBuffer.getData)
-      byteBuffer.limit(profile.imageSize)
-
       val out = new FileOutputStream(ithmbFile, true).getChannel();
       val startOffset = out.position
-      out.write(byteBuffer);
+      out.write(imageBuffer);
       val endOffset = out.position
       out.close();
 
@@ -221,6 +197,55 @@ package uk.ac.cam.ss2249.ipod.mypod {
                           g.dispose()
                           resizedImage
                         })
+    }
+
+    def defrag(mountDir: File) = {
+      val artworkDir = ArtworkDB.getArtworkDir(mountDir)
+      val sourceFiles: Map[String, File] = artworkDir.listFiles.toList.filter{
+        file => file.getName.startsWith("F") && file.getName.endsWith(".ithmb")
+      }.map{
+        file => {
+          val dest = new File(artworkDir, file.getName + ".src")
+          file.renameTo(dest)
+          (":" + file.getName, dest)
+        }
+      }.toMap
+
+      println(sourceFiles)
+
+
+      val newImages = loadedImages.map{
+        case (id, image) => {
+          val newSubImages = image.subImages.map{
+            subImage => {
+              sourceFiles.get(subImage.path) match {
+                case Some(sourceFile) => {
+                  val sourceAccessFile = new RandomAccessFile(sourceFile, "r")
+                  sourceAccessFile.seek(subImage.offset.asInstanceOf[Long])
+                  val imageBytes = Array.fill(subImage.profile.imageSize){0.asInstanceOf[Byte]}
+                  sourceAccessFile.readFully(imageBytes)
+                  val byteBuffer = ByteBuffer.allocate(imageBytes.length)
+                  byteBuffer.put(imageBytes)
+                  byteBuffer.flip
+                  println(byteBuffer)
+
+                  writeImageToiThmb(byteBuffer, subImage.profile, artworkDir) match {
+                    case (fileName, offset) => {
+                      SubImage(subImage.profile, offset, ":" + fileName)
+                    }
+                  }
+                }
+                case None => subImage
+              }
+            }
+          }
+          (id, LoadedImage(image.dbid, image.sourceSize,
+                           image.id, image.rating,
+                           newSubImages))
+        }
+      }
+
+      println(newImages.get("The WeekndBeauty Behind The Madness"))
     }
   }
 

@@ -1,9 +1,11 @@
 import java.io._
 import java.nio._;
 import java.nio.channels._;
+import com.typesafe.scalalogging._
 
 package uk.ac.cam.ss2249.ipod.mypod {
-  class MKTunes(itunesDir: File, artworkDb: ArtworkDB, ipodName: String, guid: String) {
+  class MKTunes(itunesDir: File, artworkDb: ArtworkDB, ipodName: String,
+                guid: String) extends LazyLogging {
     val MPL_UID = 1234567890
 
 
@@ -103,6 +105,7 @@ package uk.ac.cam.ss2249.ipod.mypod {
         }
       }
 
+      logger.debug("Writing playlist {} with {} songs", playlist.name, songsCount.toString)
       val playlistType = if (isHidden) 1 else 0
       iTunesDB.mkMhyp(out, buffer.position, playlist.name, playlistType, childCount,
                       playlistId, 0)

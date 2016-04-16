@@ -73,7 +73,7 @@ package uk.ac.cam.ss2249.ipod.core {
         case JObject(List((_, JArray(playlistObjs)))) => {
           playlistObjs.map{
             case JObject(List((_, JString(name)), (_, JArray(trackObjs)))) => {
-              logger.debug("Adding {}", name)
+              logger.debug("Adding {} with {} songs", name, trackObjs.length.toString)
               val LocalRegex = "(.+):[0-9]{1,5}".r
               val tracks = trackObjs.map{
                 case JString(t) => t

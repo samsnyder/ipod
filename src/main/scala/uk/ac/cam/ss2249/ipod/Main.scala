@@ -15,7 +15,7 @@ package uk.ac.cam.ss2249.ipod {
         .withDefaultCommand(classOf[Help])
         .withCommands(classOf[Help], classOf[Status],
                       classOf[Install], classOf[Reset],
-                      classOf[Clean])
+                      classOf[Clean], classOf[Defragment])
 
 
       builder.withGroup("settings")
