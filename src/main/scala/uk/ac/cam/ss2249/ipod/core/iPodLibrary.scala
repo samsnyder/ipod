@@ -3,7 +3,7 @@ import java.io._;
 import java.nio.file._
 import java.awt.image._;
 import scala.pickling.Defaults._
-import scala.pickling.json._
+import scala.pickling.binary._
 import scala.util.{Try,Success,Failure}
 import scala.pickling.shareNothing._
 import org.apache.commons.io.FileUtils
@@ -30,8 +30,8 @@ package uk.ac.cam.ss2249.ipod.core {
       val lib = Try{
         val file = getMyLibraryFile(mountDir)
         logger.debug("Trying to load {}", mountDir)
-        val json = new String(Files.readAllBytes(file.toPath), "utf8")
-        json.unpickle[iPodLibrary]
+        val bytes = Files.readAllBytes(file.toPath)
+        bytes.unpickle[iPodLibrary]
       } match {
         case Success(lib) => lib
         case Failure(e) => {
@@ -46,7 +46,7 @@ package uk.ac.cam.ss2249.ipod.core {
     }
 
     def getMyLibraryFile(mountDir: File) = {
-      new File(mountDir, "iPod_Control/MyLibrary")
+      new File(mountDir, "iPod_Control/MyLibrary.bin")
     }
   }
 
@@ -149,11 +149,11 @@ package uk.ac.cam.ss2249.ipod.core {
     }.toList
 
     def saveMyLibrary() = {
-      val json = this.pickle.value
+      val bytes = this.pickle.value
       val file = iPodLibrary.getMyLibraryFile(new File(mountDir))
       file.getParentFile().mkdirs()
       val os = new FileOutputStream(file)
-      os.write(json.getBytes)
+      os.write(bytes)
       os.close()
     }
 
