@@ -25,13 +25,19 @@ package uk.ac.cam.ss2249.ipod {
 
       logger.info("Adding {} songs.", toDownload.length.toString)
 
+
+
       var numDownload = 0
       val tracks = toDownload.grouped(20).foreach{
         group => {
           group.foreach{
             t => {
               val track = Track.fromFile(t, Some(t => ipod.copyFileToiPod(t)))
+
               ipod.addTrack(track)
+
+
+
               numDownload += 1
 
               print(Console.GREEN)

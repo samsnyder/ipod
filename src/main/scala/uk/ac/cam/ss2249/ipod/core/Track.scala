@@ -25,10 +25,11 @@ package uk.ac.cam.ss2249.ipod.core {
               getTag(tags.getAlbumArtist _),
               getTag(tags.getAlbum _),
               getTag(tags.getComposer _),
+              getTag(tags.getGenreDescription _),
               getTag(() => tags.getYear.toInt),
               getTag(() => tags.getTrack.toInt),
               getTag(() => tags.getPartOfSet.toInt),
-              getTag(() => mp3.getLengthInSeconds.asInstanceOf[Int] - 1),
+              getTag(() => mp3.getLengthInSeconds.asInstanceOf[Int]),
               copyFileToiPod match {
                 case Some(f) => Some(f(t))
                 case None => None
@@ -67,6 +68,7 @@ package uk.ac.cam.ss2249.ipod.core {
                    albumArtist: Option[String],
                    album: Option[String],
                    label: Option[String],
+                   genre: Option[String],
                    year: Option[Int],
                    trackNumber: Option[Int],
                    discNumber: Option[Int],
@@ -97,6 +99,7 @@ package uk.ac.cam.ss2249.ipod.core {
       libTrack.set("albumartist", albumArtist)
       libTrack.set("album", album)
       libTrack.set("composer", label)
+      libTrack.set("genre", genre)
       libTrack.set("year", year)
       libTrack.set("songnum", trackNumber)
       libTrack.set("cdnum", discNumber)

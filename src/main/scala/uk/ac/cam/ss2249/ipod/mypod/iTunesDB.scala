@@ -12,9 +12,8 @@ package uk.ac.cam.ss2249.ipod.mypod {
       }
 
       def writeUTF16(out: ByteBuffer, s: String) = {
-        val bytes = s.getBytes("UTF-16")
-        out.put(bytes, 3, s.length * 2 - 1)
-        writeByte(out, 0)
+        val bytes = s.getBytes("UTF-16LE")
+        out.put(bytes)
       }
 
       def writeHexString(out: ByteBuffer, string: String) = {
