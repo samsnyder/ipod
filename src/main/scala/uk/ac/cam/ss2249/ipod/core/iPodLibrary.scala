@@ -25,7 +25,7 @@ package uk.ac.cam.ss2249.ipod.core {
     }
 
     def loadMyLibrary(mountDir: File, guid: String): iPodLibrary = {
-      waitForDir(mountDir)
+      waitForDir(new File(mountDir, "iPod_Control"))
 
       val lib = Try{
         val file = getMyLibraryFile(mountDir)

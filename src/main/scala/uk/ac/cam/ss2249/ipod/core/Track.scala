@@ -29,7 +29,7 @@ package uk.ac.cam.ss2249.ipod.core {
               getTag(() => tags.getYear.toInt),
               getTag(() => tags.getTrack.toInt),
               getTag(() => tags.getPartOfSet.toInt),
-              getTag(() => mp3.getLengthInSeconds.asInstanceOf[Int]),
+              getTag(() => mp3.getLengthInSeconds.asInstanceOf[Int] - 1),
               copyFileToiPod match {
                 case Some(f) => Some(f(t))
                 case None => None

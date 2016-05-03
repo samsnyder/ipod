@@ -48,9 +48,8 @@ package uk.ac.cam.ss2249.ipod.mypod {
     }
 
     def writeAllPlaylists(out: ByteBuffer, tracks: Array[LibTrack],
-                          playlistsA: Array[LibPlaylist],
+                          playlists: Array[LibPlaylist],
                           ipodName: String) = {
-      val playlists = Array[LibPlaylist]()
       val masterBuffer: ByteBuffer = iTunesDB.Util.newByteBuffer(10 * 1024 * 1024)
       val allTrackIds = tracks.map(track => track.get("id"))
       val masterPlaylist = new LibPlaylist(ipodName, allTrackIds)
