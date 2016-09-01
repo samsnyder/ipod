@@ -27,7 +27,7 @@ package uk.ac.cam.ss2249.ipod.core {
               getTag(tags.getComposer _),
               getTag(tags.getGenreDescription _),
               getTag(() => tags.getYear.toInt),
-              getTag(() => tags.getTrack.toInt),
+              getTag(() => parseTrackNumber(tags.getTrack)),
               getTag(() => tags.getPartOfSet.toInt),
               getTag(() => mp3.getLengthInSeconds.asInstanceOf[Int] - 1),
               copyFileToiPod match {
@@ -58,6 +58,13 @@ package uk.ac.cam.ss2249.ipod.core {
         case Success(null) => None
         case Success(v) => Some(v)
         case Failure(_) => None
+      }
+    }
+
+    def parseTrackNumber(str: String): Int = {
+      Try(str.toInt) match {
+        case Success(num) => num
+        case Failure(_) => str.split("/")(0).toInt
       }
     }
   }
